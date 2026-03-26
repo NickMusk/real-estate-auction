@@ -26,6 +26,23 @@ export async function registerReviewRoutes(
     getProviderState: () => RuntimeProviderState;
   }
 ): Promise<void> {
+  /**
+   * GOAL: Expose a cheap readiness probe for deployment platforms and uptime
+   *       checks without forcing a full HTML render.
+   *
+   * WHY: Render and post-deploy smoke checks need a fast endpoint that proves
+   *      the process is alive before operators trigger a live scan.
+   *
+   * EXPECTED FLOW:
+   *   1. A probe calls /healthz.
+   *   2. The app returns a minimal JSON status payload.
+   *   3. No scan or UI rendering work happens on this path.
+   */
+  app.get("/healthz", async (_request, reply) => {
+    reply.type("application/json; charset=utf-8");
+    return { status: "ok" };
+  });
+
   app.get("/", async (_request, reply) => {
     const html = renderHomePage({
       lots: runtime.database.listLots(),

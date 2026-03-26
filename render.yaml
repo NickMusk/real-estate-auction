@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: real-estate-auction
+    runtime: node
+    repo: https://github.com/NickMusk/real-estate-auction
+    branch: main
+    plan: starter
+    region: frankfurt
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.17.1
+      - key: AUCTION_DB_PATH
+        value: /var/data/auction.sqlite
+      - key: SCHEDULER_INTERVAL_MS
+        value: "3600000"
+      - key: SPAIN_BOE_SOURCE_MODE
+        value: website
+      - key: SPAIN_BOE_LIVE_MAX_RESULTS
+        value: "5"
+      - key: MIN_DISCOUNT_PCT
+        value: "15"
+      - key: MAX_ANALYZED_LOTS
+        value: "20"
+      - key: APIFY_TOKEN
+        sync: false
+      - key: APIFY_SPAIN_BOE_ACTOR_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+    disk:
+      name: real-estate-auction-data
+      mountPath: /var/data
+      sizeGB: 1
