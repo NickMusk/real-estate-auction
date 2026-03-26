@@ -47,12 +47,13 @@ export function createMvpProviders(env: NodeJS.ProcessEnv): {
   providerState: RuntimeProviderState;
 } {
   const sourceMode = env.SPAIN_BOE_SOURCE_MODE?.trim().toLowerCase();
+  const topDealsLimit = parsePositiveInteger(env.TOP_DEALS_LIMIT, 10);
   const source =
     sourceMode === "sample"
       ? new SampleSpainBoeSource()
       : sourceMode === "website"
       ? new BoeWebsiteSpainBoeSource({
-          maxResults: parsePositiveInteger(env.SPAIN_BOE_LIVE_MAX_RESULTS, 5),
+          maxResults: parsePositiveInteger(env.SPAIN_BOE_LIVE_MAX_RESULTS, 100),
           provinceCode: env.SPAIN_BOE_PROVINCE_CODE ?? null
         })
       : env.APIFY_TOKEN && env.APIFY_SPAIN_BOE_ACTOR_ID
@@ -67,9 +68,12 @@ export function createMvpProviders(env: NodeJS.ProcessEnv): {
     env.OPENAI_API_KEY
       ? new OpenAIAuctionAnalyzer({
           apiKey: env.OPENAI_API_KEY,
-          model: env.OPENAI_MODEL ?? "gpt-4.1-mini"
+          model: env.OPENAI_MODEL ?? "gpt-4.1-mini",
+          maxTopDeals: topDealsLimit
         })
-      : new HeuristicAuctionAnalyzer();
+      : new HeuristicAuctionAnalyzer({
+          maxTopDeals: topDealsLimit
+        });
 
   const delivery =
     env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID

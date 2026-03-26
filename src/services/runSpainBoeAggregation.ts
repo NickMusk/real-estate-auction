@@ -9,6 +9,25 @@ import type { AuctionDatabase } from "../storage/AuctionDatabase.js";
 import type { DigestDeliveryProvider } from "./DigestDeliveryProvider.js";
 import type { AuctionAnalyzer } from "./HeuristicAuctionAnalyzer.js";
 
+function truncateAnalysisDraft(params: {
+  summary: string;
+  model: string;
+  topDeals: AggregationResult["analysis"]["topDeals"];
+}): {
+  summary: string;
+  model: string;
+  topDeals: AggregationResult["analysis"]["topDeals"];
+} {
+  return {
+    model: params.model,
+    summary: params.summary,
+    topDeals: params.topDeals.slice(0, 10).map((deal) => ({
+      ...deal,
+      reasons: deal.reasons.slice(0, 3)
+    }))
+  };
+}
+
 /**
  * GOAL: Execute the MVP aggregation pipeline from source scan to digest
  *       delivery with analysis lineage and prefilter guardrails.
@@ -49,10 +68,10 @@ export async function runSpainBoeAggregation(params: {
 
   const allLots = params.database.listLots();
   const shortlistedLots = prefilterLots(allLots, params.prefilter ?? defaultAggregationPrefilter);
-  const analysisDraft = await analyzer.analyzeLots({
+  const analysisDraft = truncateAnalysisDraft(await analyzer.analyzeLots({
     lots: shortlistedLots,
     now
-  });
+  }));
 
   const analysis = params.database.insertAnalysisSnapshot({
     source: "subastas.boe.es",

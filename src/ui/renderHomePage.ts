@@ -108,7 +108,7 @@ function renderBestDeals(latestAnalysis: AnalysisSnapshotRecord | null): string 
   return `
     <section class="panel analysis-panel" data-testid="ai-best-deals">
       <p class="eyebrow">AI Best Deals</p>
-      <h2>Best current opportunities</h2>
+      <h2>Top 10 current opportunities</h2>
       <p class="analysis-summary">${escapeHtml(latestAnalysis.summary)}</p>
       <p class="meta-copy">Model ${escapeHtml(latestAnalysis.model)} • Updated ${escapeHtml(formatTimestamp(latestAnalysis.createdAt))}</p>
       <div class="analysis-grid">
@@ -308,6 +308,11 @@ export function renderHomePage(model: HomePageModel): string {
             font-size: 1.6rem;
           }
 
+          .section-heading {
+            margin: 0 0 10px;
+            font-size: 1.7rem;
+          }
+
           .eyebrow {
             margin: 0 0 10px;
             text-transform: uppercase;
@@ -484,6 +489,11 @@ export function renderHomePage(model: HomePageModel): string {
             </section>
             ${renderBestDeals(model.latestAnalysis)}
             ${renderDigestPreview(model.latestDelivery)}
+            <section class="panel analysis-panel">
+              <p class="eyebrow">Inventory</p>
+              <h2 class="section-heading">All fetched lots</h2>
+              <p class="meta-copy">Showing ${escapeHtml(String(model.lots.length))} normalized lots from the latest live inventory snapshot.</p>
+            </section>
             <section class="lots-grid" aria-label="Normalized lots">
               ${renderLots(model.lots)}
             </section>

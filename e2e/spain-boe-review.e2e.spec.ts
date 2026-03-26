@@ -9,7 +9,7 @@ test.describe("Feature: spain-boe-vertical-slice", () => {
    *      a working local app that turns a scan trigger into visible review data
    *      plus the hourly automation context the operator depends on.
    */
-  test("should run the scan and show source links plus best-deals analysis", async ({ page }) => {
+  test("should run the scan and show a top-10 shortlist plus all fetched lots", async ({ page }) => {
     await page.goto("/");
 
     await expect(page.getByRole("heading", { name: "Spain BOE Review" })).toBeVisible();
@@ -22,6 +22,8 @@ test.describe("Feature: spain-boe-vertical-slice", () => {
 
     await expect(page.getByText("Completed")).toBeVisible();
     await expect(page.getByText("2 lots synced")).toBeVisible();
+    await expect(page.getByText("Top 10 current opportunities")).toBeVisible();
+    await expect(page.getByText("All fetched lots")).toBeVisible();
     const normalizedLots = page.getByLabel("Normalized lots");
     await expect(normalizedLots.getByRole("heading", { name: "Valencia apartment" })).toBeVisible();
     await expect(normalizedLots.getByRole("heading", { name: "Malaga development land" })).toBeVisible();

@@ -213,8 +213,20 @@ export class BoeWebsiteSpainBoeSource implements SpainBoeSource {
     provinceCode?: string | null;
     baseUrl?: string;
   }) {
+    /**
+     * GOAL: Default live scans to a materially useful inventory size instead
+     *       of the tiny sample-like fetch cap used during the first MVP slice.
+     *
+     * WHY: The operator now expects one run to surface a broader opportunity
+     *      set, with the top 10 ranked separately from the full fetched list.
+     *
+     * EXPECTED FLOW:
+     *   1. Use 100 as the default live fetch cap.
+     *   2. Allow explicit overrides from config or env.
+     *   3. Keep the source bounded so BOE scraping does not grow unbounded.
+     */
     this.fetchFn = config?.fetch ?? fetch;
-    this.maxResults = Math.max(1, config?.maxResults ?? 5);
+    this.maxResults = Math.max(1, config?.maxResults ?? 100);
     this.provinceCode = config?.provinceCode ?? null;
     this.baseUrl = config?.baseUrl ?? "https://subastas.boe.es";
   }

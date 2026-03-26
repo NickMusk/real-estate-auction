@@ -25,7 +25,7 @@ const schedulerIntervalMs = Number(process.env.SCHEDULER_INTERVAL_MS ?? 60 * 60 
 const prefilter: AggregationPrefilter = {
   minDiscountPct: Number(process.env.MIN_DISCOUNT_PCT ?? 15),
   allowedStatuses: ["active", "upcoming"],
-  maxAnalyzedLots: Number(process.env.MAX_ANALYZED_LOTS ?? 20)
+  maxAnalyzedLots: Number(process.env.MAX_ANALYZED_LOTS ?? 100)
 };
 const database = new AuctionDatabase(databasePath);
 const providers = createMvpProviders(process.env);

@@ -119,4 +119,91 @@ describe("Feature: boe-website-source", () => {
     });
     expect(lots[0]?.description).toContain("superficie construida");
   });
+
+  /**
+   * GOAL: Protect the live source default limit so one production scan pulls a
+   *       meaningfully larger set of opportunities without manual tuning.
+   *
+   * WHY: The user expects the default live scan to fetch 100 lots, not a tiny
+   *      sample-sized subset that hides most of the available inventory.
+   *
+   * EXPECTED FLOW:
+   *   1. Run the website source without an explicit maxResults override.
+   *   2. Discover more than 100 matching result rows.
+   *   3. Stop loading after the first 100 lots.
+   */
+  it("defaults to fetching up to 100 live lots", async () => {
+    const searchHtml = `
+      <ul>
+        ${Array.from({ length: 120 }, (_, index) => {
+          const id = String(index + 1).padStart(6, "0");
+          return `
+            <li class="resultado-busqueda">
+              <h3>SUBASTA SUB-JA-2025-${id}</h3>
+              <p>Estado: Celebrándose - [Conclusión prevista: 26/03/2026 a las 18:00:00]</p>
+              <p>Id. lote. ${id}L01. Piso en Murcia.</p>
+              <a href="./detalleSubasta.php?idSub=SUB-JA-2025-${id}&idBus=abc" class="resultado-busqueda-link-otro">
+                Más... (Referencia SUB-JA-2025-${id})
+              </a>
+            </li>
+          `;
+        }).join("")}
+      </ul>
+    `;
+
+    const summaryHtml = `
+      <table>
+        <tr><th>Cuenta expediente</th><td>3728 3105 06 0329 21</td></tr>
+        <tr><th>Fecha de inicio</th><td>06-03-2026 18:00:00 CET  (ISO: 2026-03-06T18:00:00+01:00)</td></tr>
+        <tr><th>Fecha de conclusión</th><td><strong class="destaca">26-03-2026 18:00:00 CET </strong> (ISO: 2026-03-26T18:00:00+01:00)</td></tr>
+        <tr><th>Valor subasta</th><td>160.654,79 €</td></tr>
+        <tr><th>Tasación</th><td>0,00 €</td></tr>
+        <tr><th>Importe del depósito</th><td>8.032,74 €</td></tr>
+      </table>
+    `;
+
+    const authorityHtml = `
+      <table>
+        <tr><th>Descripción</th><td>UNIDAD SUBASTAS JUDICIALES MURCIA</td></tr>
+      </table>
+    `;
+
+    const goodsHtml = `
+      <div class="bloque" id="idBloqueLote1">
+        <h4>Bien 1 - Inmueble (Vivienda)</h4>
+        <table>
+          <tr><th>Descripción</th><td>Piso con una superficie construida de 70,50 m2.</td></tr>
+          <tr><th>Dirección</th><td>CL BOCIO 4</td></tr>
+          <tr><th>Localidad</th><td>Murcia</td></tr>
+          <tr><th>Provincia</th><td>Murcia</td></tr>
+        </table>
+      </div>
+    `;
+
+    const fetchMock: typeof fetch = async (input) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.includes("subastas_ava.php")) {
+        return new Response(searchHtml, { status: 200, headers: { "Content-Type": "text/html" } });
+      }
+
+      if (url.includes("ver=2")) {
+        return new Response(authorityHtml, { status: 200, headers: { "Content-Type": "text/html" } });
+      }
+
+      if (url.includes("ver=3")) {
+        return new Response(goodsHtml, { status: 200, headers: { "Content-Type": "text/html" } });
+      }
+
+      return new Response(summaryHtml, { status: 200, headers: { "Content-Type": "text/html" } });
+    };
+
+    const lots = await new BoeWebsiteSpainBoeSource({
+      fetch: fetchMock
+    }).loadLots();
+
+    expect(lots).toHaveLength(100);
+    expect(lots[0]?.id).toBe("SUB-JA-2025-000001");
+    expect(lots.at(-1)?.id).toBe("SUB-JA-2025-000100");
+  });
 });

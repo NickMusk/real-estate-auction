@@ -107,6 +107,14 @@ function buildSummary(topDeals: RankedLot[]): string {
 export class HeuristicAuctionAnalyzer implements AuctionAnalyzer {
   readonly providerId = "heuristic-local";
 
+  constructor(
+    private readonly config: {
+      maxTopDeals: number;
+    } = {
+      maxTopDeals: 10
+    }
+  ) {}
+
   async analyzeLots(params: { lots: NormalizedLot[]; now: Date }): Promise<AnalysisDraft> {
     const rankedLots = params.lots
       .filter((lot) => lot.auction.status === "active" || lot.auction.status === "upcoming")
@@ -115,7 +123,7 @@ export class HeuristicAuctionAnalyzer implements AuctionAnalyzer {
         insight: buildInsight(lot)
       }))
       .sort((left, right) => right.insight.score - left.insight.score)
-      .slice(0, 3);
+      .slice(0, this.config.maxTopDeals);
 
     return {
       model: "heuristic-local",

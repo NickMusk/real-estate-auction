@@ -16,12 +16,12 @@ interface OpenAIAnalyzerResult {
   topDeals: BestDealInsight[];
 }
 
-function buildPrompt(lots: NormalizedLot[]): string {
+function buildPrompt(lots: NormalizedLot[], maxTopDeals: number): string {
   return [
     "You are an expert analyst for distressed real-estate auctions.",
     "Review the shortlisted Spain BOE lots and return JSON only.",
     "Return an object with keys: summary, topDeals.",
-    "topDeals must be an array of up to 3 items with: lotId, title, sourceUrl, score, verdict, summary, reasons.",
+    `topDeals must be an array of up to ${maxTopDeals} items with: lotId, title, sourceUrl, score, verdict, summary, reasons.`,
     "Use concise English output.",
     "",
     JSON.stringify(lots, null, 2)
@@ -68,11 +68,11 @@ function extractJsonObject(rawText: string): string {
   return unfenced;
 }
 
-function normalizeResult(parsed: OpenAIAnalyzerResult, model: string): AnalysisDraft {
+function normalizeResult(parsed: OpenAIAnalyzerResult, model: string, maxTopDeals: number): AnalysisDraft {
   return {
     model: `openai-live:${model}`,
     summary: parsed.summary,
-    topDeals: parsed.topDeals.slice(0, 3).map((deal) => ({
+    topDeals: parsed.topDeals.slice(0, maxTopDeals).map((deal) => ({
       ...deal,
       reasons: deal.reasons.slice(0, 3)
     }))
@@ -99,6 +99,7 @@ export class OpenAIAuctionAnalyzer implements AuctionAnalyzer {
       apiKey: string;
       model: string;
       baseUrl?: string;
+      maxTopDeals?: number;
     }
   ) {}
 
@@ -111,7 +112,7 @@ export class OpenAIAuctionAnalyzer implements AuctionAnalyzer {
       },
       body: JSON.stringify({
         model: this.config.model,
-        input: buildPrompt(params.lots)
+        input: buildPrompt(params.lots, this.config.maxTopDeals ?? 10)
       })
     });
 
@@ -122,6 +123,6 @@ export class OpenAIAuctionAnalyzer implements AuctionAnalyzer {
     const payload = (await response.json()) as OpenAIResponsePayload;
     const outputText = extractOutputText(payload);
     const parsed = JSON.parse(extractJsonObject(outputText)) as OpenAIAnalyzerResult;
-    return normalizeResult(parsed, this.config.model);
+    return normalizeResult(parsed, this.config.model, this.config.maxTopDeals ?? 10);
   }
 }

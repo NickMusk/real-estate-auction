@@ -97,4 +97,57 @@ describe("Feature: spain-boe-mvp-pipeline", () => {
     expect(analyzerSpy.mock.calls[0]?.[0].lots).toHaveLength(1);
     expect(analyzerSpy.mock.calls[0]?.[0].lots[0]?.id).toBe("ES-BOE-SUB-JA-2026-241891");
   });
+
+  /**
+   * GOAL: Keep the persisted best-deals block aligned with the new operator
+   *       expectation of reviewing a top 10 shortlist.
+   *
+   * WHY: If the analyzer result gets truncated back to 3, the UI will still
+   *      hide most of the ranked opportunities even after we fetch more lots.
+   *
+   * EXPECTED FLOW:
+   *   1. Analyzer returns more than 10 ranked deals.
+   *   2. Aggregation persists only the top 10 insights.
+   *   3. The UI can render a stable top 10 block from that snapshot.
+   */
+  it("persists up to 10 ranked deals in the analysis snapshot", async () => {
+    const database = createTestDatabase();
+    const deliveryProvider: DigestDeliveryProvider = {
+      providerId: "preview-local",
+      deliverDigest: vi.fn(async ({ message }) => ({
+        providerId: "preview-local",
+        status: "previewed" as const,
+        externalId: null,
+        previewText: message
+      }))
+    };
+
+    const analyzer: AuctionAnalyzer = {
+      providerId: "test-analyzer",
+      analyzeLots: vi.fn(async () => ({
+        model: "test-analyzer",
+        summary: "Top 10 generated",
+        topDeals: Array.from({ length: 12 }, (_, index) => ({
+          lotId: `lot-${index + 1}`,
+          title: `Lot ${index + 1}`,
+          sourceUrl: `https://example.test/lot-${index + 1}`,
+          score: 99 - index,
+          verdict: "worth reviewing",
+          summary: `Summary ${index + 1}`,
+          reasons: ["Reason A", "Reason B", "Reason C", "Reason D"]
+        }))
+      }))
+    };
+
+    const result = await runSpainBoeAggregation({
+      database,
+      analyzer,
+      deliveryProvider,
+      now: new Date("2026-03-25T08:00:00.000Z")
+    });
+
+    expect(result.analysis.topDeals).toHaveLength(10);
+    expect(result.analysis.topDeals[0]?.title).toBe("Lot 1");
+    expect(result.analysis.topDeals[9]?.title).toBe("Lot 10");
+  });
 });
